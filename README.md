@@ -30,3 +30,6 @@ The spatially-explict model simulates change in water levels from tides and coun
 
 **Sample plot of data from the 'fieldsummary.txt' output**
 ![alt text](docs/flkeys_swa_2016.png)
+
+**Sample figure based on map from model output**
+![alt text](docs/map_output.png)
