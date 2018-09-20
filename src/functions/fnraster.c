@@ -274,7 +274,7 @@ Bool rasterwrite(Raster *r, const char *filename)
       //write header
       fprintf(f,"ncols %d\n",r->ncols);
       fprintf(f,"nrows %d\n",r->nrows);
-      fprintf(f,"yllcorner %f\n",r->xllcorner);
+      fprintf(f,"xllcorner %f\n",r->xllcorner);
       fprintf(f,"yllcorner %f\n",r->yllcorner);
       fprintf(f,"cellsize %f\n",r->cellsize);
       fprintf(f,"nodata_value %f\n",r->nodata);
