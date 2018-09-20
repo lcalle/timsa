@@ -1,7 +1,7 @@
 # timsa
 Tidal Model of Shallow Water Availability
 
-The model simulates change in water levels from tides and counts the amount of time (in minutes) that water levels are within a 'water-window', which represents an ecologically relevant range of water levels. 
+The spatially-explict model simulates change in water levels from tides and counts the amount of time (in minutes) that water levels are within a 'water-window', which represents an ecologically relevant range of water levels. Output is a gridded map.
 
 **Model Configuration and Options**:
 <pre>
