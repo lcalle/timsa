@@ -44,6 +44,7 @@ Bool fscanconfig(Config *config,       /* timsa configuration         */
   if((read = getline(&buffer, &len, fp)) != -1) config->n                  = (int)strtol(buffer, &ptr, 10);
   if((read = getline(&buffer, &len, fp)) != -1) config->simtimestep        = (int)strtol(buffer, &ptr, 10);
   if((read = getline(&buffer, &len, fp)) != -1) config->constrain_daylight = (int)strtol(buffer, &ptr, 10);
+  if((read = getline(&buffer, &len, fp)) != -1) config->save_waterdepth    = (int)strtol(buffer, &ptr, 10);
   if((read = getline(&buffer, &len, fp)) != -1) config->lowerbound_waterwindow = (double)strtod(buffer, &ptr);
   if((read = getline(&buffer, &len, fp)) != -1) config->upperbound_waterwindow = (double)strtod(buffer, &ptr);
   if((read = getline(&buffer, &len, fp)) != -1) config->usemask                  = (int)strtol(buffer, &ptr, 10);

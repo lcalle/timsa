@@ -33,6 +33,7 @@ extern void iterateday(Config);
 extern void tide_wdchange(Raster *, double *[], int, int, int, int, int);
 extern int  check_nodata(Raster *, int *[], double *[], double *[], int, int, int);
 extern void writeindices(Config *, Raster *, Raster *, int, int, int);
+extern void writesumy(Config);
 
 /* Definition of macros */
 
