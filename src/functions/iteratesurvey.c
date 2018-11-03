@@ -21,9 +21,10 @@ void iteratesurvey(Config config){ //userinputs
   //declare single variables
   char outname[120];
   int i,j,k,g,x,bb;
-  int tidegauges=0, gaugenumber = 0;
-  int startsimulation = 0;
-  int maxtideminutes_ebb = 0;
+  int tidegauges=0, gaugenumber=0;
+  int startsimulation      = 0;
+  int maxsurveyduration    = 0;
+  int maxtideminutes_ebb   = 0;
   int maxtideminutes_flood = 0;
   int simulation_starttime,simulation_timeactual,TFLrise,TFLset;
   //int waterdepth_output_time = 30;
@@ -38,7 +39,7 @@ void iteratesurvey(Config config){ //userinputs
   //double *TRangeEbb1,*TRangeFlood1,*HGT1st;
   //double wdchange,Yt2,Yt1,phaseYt2,phaseYt1;
                   
-  Raster *gaugeREF,*depthsX,*defaultRaster,*tideFHA,*depths1E,*depths1F;  //structure for Raster memory
+  Raster *gaugeREF,*depthsX,*defaultRaster,*tideFHA,*depths1E,*depths1F,*waterdepth_output;  //structure for Raster memory
   Raster *mask;
 
   //...........................
@@ -116,6 +117,8 @@ void iteratesurvey(Config config){ //userinputs
       if(i % 10 == 0) printf("\t%.0f%% of surveys completed\n",round((double)i / (double)tides*100.0));
 
       tideFHA = rastercopy(defaultRaster);//sums FHA for day
+      if(config.save_waterdepth == TRUE){waterdepth_output = rastercopy(defaultRaster);}
+
       //......................................................//
       //    height adjustments for the day of the survey      //
       //......................................................//
@@ -135,10 +138,8 @@ void iteratesurvey(Config config){ //userinputs
          if(depthsX->data[bb] == depthsX->nodata  || gaugeREF->data[bb] == gaugeREF->nodata) continue;
           
           gaugenumber     = (int)gaugeREF->data[bb];
-          //printf("surveytime[i][0]: %d, bb %d, gaugeREF->data[bb] %f, gaugenumber %d, gauge1stLT[i][gaugenumber - 1]: %d\n", surveytime[i][0], bb, gaugeREF->data[bb], gaugenumber, gauge1stLT[i][gaugenumber - 1]);
-
           startsimulation = surveytime[i][0] - gauge1stLT[i][gaugenumber - 1];//sets the water levels for the simulation to be near the start of the survey
-          //printf("cell#: %d, startsimulation (TFL): %d\t", bb, startsimulation);
+
           if(startsimulation < 0)//survey start time is on the ebb tide, adjust the ebb-tide water depth raster
           {
               maxtideminutes_ebb = PeriodEbb1[i][gaugenumber - 1];
@@ -179,7 +180,8 @@ void iteratesurvey(Config config){ //userinputs
       //....................................//
       //        tidal simulation            //
       //....................................//
-      for(k = 0; k < surveytime[i][1]; k+=config.simtimestep) //runs tidal simulation for duration = elapsed time during survey
+      maxsurveyduration = surveytime[i][1] - surveytime[i][0]; 
+      for(k = 0; k < (maxsurveyduration+1); k+=config.simtimestep) //runs tidal simulation for duration = elapsed time during survey
       {
           for(bb = 0; bb < depthsX->count; bb++)
           {
@@ -198,6 +200,10 @@ void iteratesurvey(Config config){ //userinputs
 
               if(simulation_timeactual < 0) //use ebb raster until [simulation time is > 0] i.e. until flood tide. While k < 0, tide is ebbing
               {
+                  //update if saving waterdepths
+                  if(config.save_waterdepth == TRUE && k % 10 == 0){waterdepth_output->data[bb] = depths1E->data[bb];}
+
+                  //get maximum tide duration
                   maxtideminutes_ebb = PeriodEbb1[i][gaugenumber - 1];
                   
                   //water is outgoing on the ebb tide. When water depths are too low to forage, break (continue is safety); no more foraging occurs on ebb tide
@@ -228,6 +234,10 @@ void iteratesurvey(Config config){ //userinputs
               }
               else if(simulation_timeactual >= 0)
               {
+                  //update if saving waterdepths
+                  if(config.save_waterdepth == TRUE && k % 10 == 0){waterdepth_output->data[bb] = depths1F->data[bb];}
+
+                  //get maximum tide duration
                   maxtideminutes_flood = PeriodFlood1[i][gaugenumber - 1];
                   
                   //water is added to the flood raster, break (continue) loop if water depths are already too deep
@@ -258,47 +268,14 @@ void iteratesurvey(Config config){ //userinputs
               }
           }//..end gridcell loop
 
-          /*
-          ///////////////////////////////////////////////////////////////////////////////////////////////////////
-          ///////////////////////   water depth output times     //////////////////////////////////////////////////
-          ///////////////////////////////////////////////////////////////////////////////////////////////////////
-              
-          if (k == waterdepth_output_time)
-          {
-              Raster waterdepths_output = defaultRaster.Clone();//empty raster -> populate with waterdepths from ebb/flood rasters to make 1 united raster
-              if (Directory.Exists("Resources\\RSM_WaterDepths") == false)
-              {
-                  Directory.CreateDirectory("Resources\\RSM_WaterDepths");
-              }
-
-              for (int bb = 0; bb < waterdepths_output.data.count; bb++)
-              {
-                  if (depthsX.data[bb] == depthsX->nodata)
-                  {
-                      continue;
-                  }
-                  /////////////////////////////
-                  gaugenumber = (int)gaugeREF.data[bb];
-                  /////////////////////////////
-                  simulation_starttime = surveytime[i, 0] - gauge1stLT[i, (gaugenumber - 1)];//time relative to lowtide, simulation is forward...
-                  simulation_timeactual = k + simulation_starttime;
-                  ////////////////////////////////// 
-                  if (simulation_timeactual < 0)
-                  {
-                      waterdepths_output.data[bb] = depths1E.data[bb];
-                  }
-                  else if (simulation_timeactual >= 0)
-                  {
-                      waterdepths_output.data[bb] = depths1F.data[bb];
-                  }
-              }
-                      
-              waterdepths_output.WriteToFile("Resources\\RSM_WaterDepths\\ObsID_" + i.ToString("D3") + "_" + "waterdepth.asc");
-              Console.WriteLine(i.ToString("D3") + " <- obs waterdepths saved to file.");
-              
-          }//..end of waterdepth outputs
-          */ 
-          
+          //.....................//
+          //  save water depth?  //
+          //.....................//
+          if(config.save_waterdepth == TRUE){
+            sprintf(outname, "%s/survey_%03d_waterdepth_surveyminute_%03d.asc",config.shallowwateravail_outdir,i,k+surveytime[i][0]);
+            rasterwrite(waterdepth_output,outname);
+          }
+ 
           //...........................//
           //      tide adjustment      //
           //...........................//

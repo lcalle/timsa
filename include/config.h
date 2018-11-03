@@ -15,8 +15,9 @@ typedef struct
   //-----------------------------------
   int simtype;                   //simulation type; 1=surveys,2=tides,3=days,4=full year
   int n;                         //number of rows in driver data; represents surveys, tides, or days
-  int simtimestep;               //timestep_interval   (in minutes)
-  int constrain_daylight;        //constrain_daylight  (Bool is int; TRUE 0=yes, FALSE 1=no)
+  int simtimestep;               //timestep_interval    (in minutes)
+  int constrain_daylight;        //constrain_daylight   (Bool is int; TRUE 0=yes, FALSE 1=no)
+  int save_waterdepth;           //save water depths? (Bool is int; TRUE 0=yes, FALSE 1=no)
   double lowerbound_waterwindow; //lower bound in water window to estimate availability (negative is water)
   double upperbound_waterwindow; //upper bound in water window to estimate availability (positive is dry)
   int usemask;                   //use ascii mask for field summaries (Bool is int; TRUE 0=yes, FALSE 1=no)

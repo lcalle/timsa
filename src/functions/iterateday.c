@@ -360,6 +360,12 @@ void iterateday(Config config){ //userinputs
       }
 
   }//..end of day loop
+
+  //----------------------------------
+  // write day average summary raster
+  //----------------------------------
+  writesumy(config);
+
   //----------------
   //free memory
   //----------------
