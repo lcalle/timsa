@@ -271,7 +271,7 @@ void iteratesurvey(Config config){ //userinputs
           //.....................//
           //  save water depth?  //
           //.....................//
-          if(config.save_waterdepth == TRUE){
+          if(config.save_waterdepth == TRUE && k % 10 == 0){
             sprintf(outname, "%s/survey_%03d_waterdepth_surveyminute_%03d.asc",config.shallowwateravail_outdir,i,k+surveytime[i][0]);
             rasterwrite(waterdepth_output,outname);
           }
