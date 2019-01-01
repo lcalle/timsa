@@ -29,6 +29,7 @@ void iterateday(Config config){ //userinputs
   int TFLrise,TFLset;
   //int waterdepth_output_time = 30;
   int days;
+  int time1440,day2;
   
   double lowerbound, upperbound;
   //double wdchange,Yt1,Yt2,phaseYt1,phaseYt2;
@@ -129,6 +130,16 @@ void iterateday(Config config){ //userinputs
   CSV2array2d_double(config.range_1_flood_filename, TRangeFlood1 ,days, tidegauges);
   CSV2array2d_double(config.range_2_flood_filename, TRangeFlood2 ,days, tidegauges);
 
+  //........................
+  // make csv for wdoutputs
+  //........................
+  if(config.save_waterdepth == TRUE){
+    FILE *f = fopen("waterdepths_day_csv.txt", "w");
+    //write the header, then write the data
+    fprintf(f, "hobo_ref,gauge_ref,day,minute,waterdepth_mm\n");
+    fclose(f);
+  }
+
   //---------------------------//
   //     main tidal loop       //
   // ..adjust water maps       //
@@ -139,8 +150,8 @@ void iterateday(Config config){ //userinputs
   for(i = 0; i < days; i++)  //for each day; ebb or flood rasters = 0.5 of tide [e.g. Total time available (TTA) = ebb + flood]
   {
       if(i % 10 == 0) printf("\t%.0f%% of days completed\n",round((double)i / (double)days*100.0));
-
       dayFHA = rastercopy(defaultRaster); //sums FHA for day
+
       //......................................................//
       //    height adjustments for day                        //
       //......................................................//
@@ -178,12 +189,30 @@ void iterateday(Config config){ //userinputs
 
           if(check_nodata(depthsX,PeriodEbb1,TRangeEbb1,HGT1st,bb,i,gaugenumber)==TRUE)continue; 
           
-          for (k = 1; k < 700; k+=config.simtimestep)//flood1 tide simulation
+          for (k = 1; k < 700; k+=config.simtimestep)//ebb1 tide simulation
           {
               if(depths1E->data[bb] < lowerbound || k > maxtideminutes) break;
               TFLrise = sun[i][0] - gauge1stLT[i][gaugenumber - 1]; //time from low, sunrise, NO buffer
               TFLset  = sun[i][1] - gauge1stLT[i][gaugenumber - 1]; //time from low, sunset, NO buffer
-              
+  
+              //save water depth
+              if(config.save_waterdepth == TRUE && k % 10 == 0){
+                //day, minute, .. then wd
+                FILE *f = fopen("waterdepths_day_csv.txt", "a");
+                if((gauge1stLT[i][gaugenumber - 1] - k) < 0){
+                  day2=i-1;
+                  time1440 = 1440 + (gauge1stLT[i][gaugenumber - 1] - k);
+                }else if((gauge1stLT[i][gaugenumber - 1] - k) < 1440){
+                  day2=i;
+                  time1440 = gauge1stLT[i][gaugenumber - 1] - k;
+                }else{
+                  day2=i+1;
+                  time1440 = gauge1stLT[i][gaugenumber - 1] - k - 1440;
+                }
+                fprintf(f, "%d,%d,%d,%d,%f\n",bb,(int)gaugeREF->data[bb],day2,time1440, depths1E->data[bb]); //subtract k for correct minute 
+                fclose(f);
+              }
+
               if(depths1E->data[bb] >= lowerbound && depths1E->data[bb] <= upperbound)
               {
                   //-----------------------------
@@ -226,6 +255,21 @@ void iterateday(Config config){ //userinputs
               TFLrise = sun[i][0] - gauge1stLT[i][gaugenumber - 1];  //time from low, sunrise, NO buffer
               TFLset  = sun[i][1] - gauge1stLT[i][gaugenumber - 1];  //time from low, sunset, NO buffer
               
+              //save water depth
+              if(config.save_waterdepth == TRUE && k % 10 == 0){
+                //day, minute, .. then wd
+                FILE *f = fopen("waterdepths_day_csv.txt", "a");
+                if((gauge1stLT[i][gaugenumber - 1] + k) < 1440){
+                  day2=i;
+                  time1440 = gauge1stLT[i][gaugenumber - 1] + k;
+                }else{
+                  day2=i+1;
+                  time1440 = gauge1stLT[i][gaugenumber - 1] + k - 1440;
+                }
+                fprintf(f, "%d,%d,%d,%d,%f\n",bb,(int)gaugeREF->data[bb],day2,time1440, depths1F->data[bb]); //add k for correct minute 
+                fclose(f);
+              }
+
               if(depths1F->data[bb] >= lowerbound && depths1F->data[bb] <= upperbound)
               {
                   //-----------------------------
@@ -270,6 +314,24 @@ void iterateday(Config config){ //userinputs
               TFLrise = sun[i][0] - gauge2ndLT[i][gaugenumber - 1]; //time from low, sunrise, NO buffer
               TFLset  = sun[i][1] - gauge2ndLT[i][gaugenumber - 1]; //time from low, sunset, NO buffer
               
+              //save water depth
+              if(config.save_waterdepth == TRUE && k % 10 == 0){
+                //day, minute, .. then wd
+                FILE *f = fopen("waterdepths_day_csv.txt", "a");
+                if((gauge2ndLT[i][gaugenumber - 1] - k) < 0){
+                  day2=i-1;
+                  time1440 = 1440 + (gauge2ndLT[i][gaugenumber - 1] - k);
+                }else if((gauge2ndLT[i][gaugenumber - 1] - k) < 1440){
+                  day2=i;
+                  time1440 = gauge2ndLT[i][gaugenumber - 1] - k;
+                }else{
+                  day2=i+1;
+                  time1440 = gauge2ndLT[i][gaugenumber - 1] - k - 1440;
+                }
+                fprintf(f, "%d,%d,%d,%d,%f\n",bb,(int)gaugeREF->data[bb],day2,time1440, depths2E->data[bb]); //subtract k for correct minute 
+                fclose(f);
+              }
+
               if(depths2E->data[bb] >= lowerbound && depths2E->data[bb] <= upperbound)
               {
                   //-----------------------------
@@ -311,6 +373,21 @@ void iterateday(Config config){ //userinputs
               if(depths2F->data[bb] < lowerbound || k > maxtideminutes) break;
               TFLrise = sun[i][0] - gauge2ndLT[i][gaugenumber - 1]; //time from low, sunrise, NO buffer
               TFLset  = sun[i][1] - gauge2ndLT[i][gaugenumber - 1]; //time from low, sunset, NO buffer
+
+              //save water depth
+              if(config.save_waterdepth == TRUE && k % 10 == 0){
+                //day, minute, .. then wd
+                FILE *f = fopen("waterdepths_day_csv.txt", "a");
+                if((gauge2ndLT[i][gaugenumber - 1] + k) < 1440){
+                  day2=i;
+                  time1440 = gauge2ndLT[i][gaugenumber - 1] + k;
+                }else{
+                  day2=i+1;
+                  time1440 = gauge2ndLT[i][gaugenumber - 1] + k - 1440;
+                }
+                fprintf(f, "%d,%d,%d,%d,%f\n",bb,(int)gaugeREF->data[bb],day2,time1440, depths2F->data[bb]); //add k for correct minute 
+                fclose(f);
+              }
 
               if(depths2F->data[bb] >= lowerbound && depths2F->data[bb] <= upperbound)
               {
