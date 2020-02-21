@@ -9,7 +9,7 @@
 include ../../Makefile.inc
 
 OBJ	= check_nodata.$O fail.$O fnraster.$O fncsv.$O fscanconfig.$O iterateday.$O iteratesurvey.$O\
-      iterateday_prescribewd.$O tide_wdchange.$O writeindices.$O writesumy.$O
+      iterateday_prescribewd.$O iterateday_prescribewd_NADV88.$O tide_wdchange.$O writeindices.$O writesumy.$O
 
 INC	= ../../include
 LIB	= ../../lib/libfunctions.$A

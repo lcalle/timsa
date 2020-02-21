@@ -13,14 +13,14 @@ typedef struct
   //-----------------------------------
   // additional options in config file
   //-----------------------------------
-  int simtype;                   //simulation type; 1=surveys,2=tides,3=days,4=full year
+  int simtype;                   //simulation type; 1=surveys,2=days,3=days wdepth prescribed
   int n;                         //number of rows in driver data; represents surveys, tides, or days
   int simtimestep;               //timestep_interval    (in minutes)
-  int constrain_daylight;        //constrain_daylight   (Bool is int; TRUE 0=yes, FALSE 1=no)
-  int save_waterdepth;           //save water depths? (Bool is int; TRUE 0=yes, FALSE 1=no)
+  int constrain_daylight;        //constrain_daylight   (Bool is int; TRUE 1=yes, FALSE 0=no)
+  int save_waterdepth;           //save water depths? (Bool is int; TRUE 1=yes, FALSE 0=no)
   double lowerbound_waterwindow; //lower bound in water window to estimate availability (negative is water)
   double upperbound_waterwindow; //upper bound in water window to estimate availability (positive is dry)
-  int usemask;                   //use ascii mask for field summaries (Bool is int; TRUE 0=yes, FALSE 1=no)
+  int usemask;                   //use ascii mask for field summaries (Bool is int; TRUE 1=yes, FALSE 0=no)
   char *mask_filename;           //ascii mask 0 exclude 1 include or use dummy filename if usemask if false
 
   //------------------

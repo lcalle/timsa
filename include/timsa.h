@@ -31,6 +31,7 @@
 extern void iteratesurvey(Config);
 extern void iterateday(Config);
 extern void iterateday_prescribewd(Config);
+extern void iterateday_prescribewd_NADV88(Config);
 extern void tide_wdchange(Raster *, double *[], int, int, int, int, int);
 extern int  check_nodata(Raster *, int *[], double *[], double *[], int, int, int);
 extern void writeindices(Config *, Raster *, Raster *, int, int, int);

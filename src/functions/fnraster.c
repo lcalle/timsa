@@ -288,8 +288,8 @@ Bool rasterwrite(Raster *r, const char *filename)
              fprintf(f,"%f ",r->nodata);
            }else if(r->data[i] == 0){      //reduce file size
              fprintf(f,"0 "); 
-           }else if( (roundf(r->data[i] * 10000.0)/10000.0) == 0){      //simplify and reduce file size
-             fprintf(f,"0 ");
+           //}else if( (roundf(r->data[i] * 10000.0)/10000.0) == 0){      //simplify and reduce file size
+           //  fprintf(f,"0 ");
            }else{
              fprintf(f,"%f ",r->data[i]);
            }
@@ -302,8 +302,8 @@ Bool rasterwrite(Raster *r, const char *filename)
           fprintf(f,"%f\n",r->nodata);   
         }else if(r->data[i] == 0){   
           fprintf(f,"0\n");                          
-        }else if( (roundf(r->data[i] * 10000.0)/10000.0) == 0){
-          fprintf(f,"0\n");
+        //}else if( (roundf(r->data[i] * 10000.0)/10000.0) == 0){
+        //  fprintf(f,"0\n");
         }else{
           fprintf(f,"%f\n",r->data[i]);
         }

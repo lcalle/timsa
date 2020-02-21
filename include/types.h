@@ -10,10 +10,10 @@
 /* Definition of constants */
 #define epsilon 1.0E-6 /* a minimal value -- check if neglegible */
 #ifndef TRUE    /* Check whether TRUE or FALSE are already defined */
-#define TRUE 0
+#define TRUE 1
 #endif
 #ifndef FALSE
-#define FALSE 1
+#define FALSE 0
 #endif
 
 /* Definition of datatypes */

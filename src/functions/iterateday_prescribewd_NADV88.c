@@ -20,7 +20,7 @@
 #include "fncsv.h"
 #include "types.h"
 
-void iterateday_prescribewd(Config config){ //userinputs
+void iterateday_prescribewd_NADV88(Config config){ //userinputs
   //declare single variables
   char outname[120];
   int i,x,bb;
@@ -37,7 +37,7 @@ void iterateday_prescribewd(Config config){ //userinputs
   //declare array variables
   //..memory allocated below
                   
-  Raster *gaugeREF,*depthsX,*defaultRaster,*dayFHA; //structure for Raster memory
+  Raster *gaugeREF,*dem,*depthsX,*defaultRaster,*dayFHA; //structure for Raster memory
   Raster *depths_sim;
   Raster *mask; 
   
@@ -51,9 +51,10 @@ void iterateday_prescribewd(Config config){ //userinputs
   printf("loading raster data...\n");
   //get raster data
   gaugeREF      = rasterget(config.gauge_filename);
+  dem           = rasterget(config.water_filename);
   depthsX       = rasterget(config.water_filename);
-  defaultRaster = rastercopy(depthsX);     
-  
+  defaultRaster = rastercopy(dem);     
+ 
   for(i = 0; i < defaultRaster->count; i++)
   {
       if(defaultRaster->data[i] != defaultRaster->nodata){ defaultRaster->data[i] = 0;}
@@ -93,7 +94,7 @@ void iterateday_prescribewd(Config config){ //userinputs
   // make csv for wdoutputs
   //........................
   if(config.save_waterdepth == TRUE){
-    FILE *f = fopen("waterdepths_prescribed_day.txt", "w");
+    FILE *f = fopen("waterdepths_negvalues_iswater_posvalues_isdry_prescribed_day.txt", "w");
     //write the header, then write the data
     fprintf(f, "gridcell,gauge_ref,day,minute,waterdepth_mm\n");
     fclose(f);
@@ -118,12 +119,16 @@ void iterateday_prescribewd(Config config){ //userinputs
       //    height adjustments for first day only             //
       //......................................................//
       if(i==0){
+        printf("making height adjustment for first day...\n");
         depths_sim = rastercopy(depthsX);
         for(x = 0; x < depthsX->count; x++)
         {
             //check no data
             if(depthsX->data[x] == depthsX->nodata || gaugeREF->data[x] == gaugeREF->nodata)continue;
-            depths_sim->data[x] += gaugewdepths[i][(int)gaugeREF->data[x] - 1]; //height adjustment for the day
+            //add water to dem
+            //..becomes the water surface
+            //..but water depths need to be calculated as the dem minus depths_sim so that water is negative relative to water surface
+            depths_sim->data[x] += gaugewdepths[i][(int)gaugeREF->data[x] - 1] - dem->data[x]; //height adjustment for the day
         }
       }//..only adjust for first day of year
 
@@ -140,20 +145,21 @@ void iterateday_prescribewd(Config config){ //userinputs
       TFLrise   = sun[trackday][0] - dayminute; //time from sunrise, NO buffer
       TFLset    = sun[trackday][1] - dayminute; //time from sunset, NO buffer
 
+      printf("\t tidal simulation..day %d..dayminute %d..\n",trackday,dayminute);
       for(bb = 0; bb < depthsX->count; bb++)
       {
           //save water depth??
           if(config.save_waterdepth == TRUE && dayminute % dayminute == 0){ //print water depths every 1 min
-            //day, minute, .. then wd
-            FILE *f = fopen("waterdepths_prescribed_day.txt", "a");
-            fprintf(f, "%d,%d,%d,%d,%f\n",bb,(int)gaugeREF->data[bb],trackday,dayminute, depths_sim->data[bb]); //add k for correct minute 
+            //day, minute, .. then wd, where wdepths are relative to water surface, negative values is wet, positive values dry
+            FILE *f = fopen("waterdepths_negvalues_iswater_posvalues_isdry_prescribed_day.txt", "a");
+            fprintf(f, "%d,%d,%d,%d,%f\n",bb,(int)gaugeREF->data[bb],trackday,dayminute, dem->data[bb] - depths_sim->data[bb]); //add k for correct minute 
             fclose(f);
           }
 
           if(depthsX->data[bb] == depthsX->nodata || gaugeREF->data[bb] == gaugeREF->nodata) continue;
           gaugenumber    = (int)gaugeREF->data[bb];
-          
-          if(depths_sim->data[bb] >= lowerbound && depths_sim->data[bb] <= upperbound)
+         
+          if( (dem->data[bb] - depths_sim->data[bb]) >= lowerbound && (dem->data[bb] - depths_sim->data[bb]) <= upperbound )
           {
               //-----------------------------
               //   diurnal availability
@@ -176,8 +182,11 @@ void iterateday_prescribewd(Config config){ //userinputs
               }
           }
 
-          //update water levels
-          if(i < nrows) depths_sim->data[bb] -= gaugewdepths[i+1][gaugenumber - 1] - gaugewdepths[i][gaugenumber - 1]; 
+          //update water surface levels
+          //..gauge provides the rate of change
+          //..negative values reduce water levels (makes shallower)
+          //..positive values add water
+          if(i < nrows) depths_sim->data[bb] += gaugewdepths[i+1][gaugenumber - 1] - gaugewdepths[i][gaugenumber - 1]; 
       }//end grid loop
               
       //.............//
