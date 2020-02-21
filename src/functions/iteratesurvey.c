@@ -114,6 +114,7 @@ void iteratesurvey(Config config){ //userinputs
   //---------------------------//
   for(i = 0; i < tides; i++)  //for each survey; ebb or flood rasters = 0.5 of tide [e.g. Total time available (TTA) = ebb + flood]
   {
+      printf("\tsurvey %d...\n",i);
       if(i % 10 == 0) printf("\t%.0f%% of surveys completed\n",round((double)i / (double)tides*100.0));
 
       tideFHA = rastercopy(defaultRaster);//sums FHA for day

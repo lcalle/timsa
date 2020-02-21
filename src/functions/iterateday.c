@@ -29,16 +29,11 @@ void iterateday(Config config){ //userinputs
   int TFLrise,TFLset;
   //int waterdepth_output_time = 30;
   int days;
-  
+  int trackday=0;
+  int dayminute=0;
   double lowerbound, upperbound;
-  //double wdchange,Yt1,Yt2,phaseYt1,phaseYt2;
+  int writeinterval=1;
 
-  //declare array variables
-  //..memory allocated below
-  //int *sun,*gauge1stLT,*PeriodEbb1,*PeriodFlood1;
-  //double *TRangeEbb1,*TRangeFlood1,*HGT1st;
-  //double wdchange,Yt2,Yt1,phaseYt2,phaseYt1;
-                  
   Raster *gaugeREF,*depthsX,*defaultRaster,*dayFHA; //structure for Raster memory
   Raster *depths1E,*depths2E,*depths1F,*depths2F;
   Raster *mask; 
@@ -67,7 +62,7 @@ void iterateday(Config config){ //userinputs
     tidegauges = max(tidegauges,gaugeREF->data[i]);
   }
   ///////////////
-  
+
   //use mask for indices  
   if(config.usemask == TRUE){ mask = rasterget(config.mask_filename);}
 
@@ -112,22 +107,37 @@ void iterateday(Config config){ //userinputs
   //---------------------------//
   //        get data           //
   //---------------------------//
+  printf("getting sun data..\n");
   CSV2array2d_int(config.sun_filename, sun, days,2);
+  printf("getting low tide times data..\n");
   CSV2array2d_int(config.lowtide_times_1_filename, gauge1stLT, days, tidegauges);
   CSV2array2d_int(config.lowtide_times_2_filename, gauge2ndLT, days, tidegauges);
 
+  printf("getting low tide heights data..\n");
   CSV2array2d_double(config.height_1_filename, HGT1st, days, tidegauges);
   CSV2array2d_double(config.height_2_filename, HGT2nd, days, tidegauges);
 
+  printf("getting low tide periods data..\n");
   CSV2array2d_int(config.period_1_ebb_filename, PeriodEbb1, days, tidegauges);
   CSV2array2d_int(config.period_2_ebb_filename, PeriodEbb2, days, tidegauges);
   CSV2array2d_int(config.period_1_flood_filename, PeriodFlood1, days, tidegauges);
   CSV2array2d_int(config.period_2_flood_filename, PeriodFlood2, days, tidegauges);
 
+  printf("getting low tide tidal range data..\n");
   CSV2array2d_double(config.range_1_ebb_filename, TRangeEbb1, days, tidegauges);
   CSV2array2d_double(config.range_2_ebb_filename, TRangeEbb2, days, tidegauges);
   CSV2array2d_double(config.range_1_flood_filename, TRangeFlood1 ,days, tidegauges);
   CSV2array2d_double(config.range_2_flood_filename, TRangeFlood2 ,days, tidegauges);
+
+  //........................
+  // make csv for wdoutputs
+  //........................
+  if(config.save_waterdepth == TRUE){
+    FILE *f = fopen("waterdepths_prescribed_day.txt", "w");
+    //write the header, then write the data
+    fprintf(f, "gridcell,gauge_ref,day,minute,waterdepth_mm\n");
+    fclose(f);
+  }
 
   //---------------------------//
   //     main tidal loop       //
@@ -169,6 +179,7 @@ void iterateday(Config config){ //userinputs
       // ..consider for future developments            //
       // ..will be helpful for parallel runs           //
       //...............................................//
+
       for(bb = 0; bb < depthsX->count; bb++)
       {
           if(depthsX->data[bb] == depthsX->nodata || gaugeREF->data[bb] == gaugeREF->nodata) continue;
@@ -178,8 +189,14 @@ void iterateday(Config config){ //userinputs
 
           if(check_nodata(depthsX,PeriodEbb1,TRangeEbb1,HGT1st,bb,i,gaugenumber)==TRUE)continue; 
           
-          for (k = 1; k < 700; k+=config.simtimestep)//flood1 tide simulation
+          //initialize for looping
+          trackday=i;
+          dayminute = 0; //initialize
+          for (k = 1; k < 700; k+=config.simtimestep)//ebb1 tide simulation
           {
+              dayminute = config.simtimestep*(gauge1stLT[i][gaugenumber - 1]-k+1); //1440 min in day
+              if(dayminute < 0){trackday=i-1; dayminute+=1440;}
+
               if(depths1E->data[bb] < lowerbound || k > maxtideminutes) break;
               TFLrise = sun[i][0] - gauge1stLT[i][gaugenumber - 1]; //time from low, sunrise, NO buffer
               TFLset  = sun[i][1] - gauge1stLT[i][gaugenumber - 1]; //time from low, sunset, NO buffer
@@ -209,6 +226,15 @@ void iterateday(Config config){ //userinputs
 
               //update water levels
               tide_wdchange(depths1E,TRangeEbb1,bb,i,maxtideminutes,gaugenumber,k);
+
+              //save water depth??
+              if(config.save_waterdepth == TRUE && dayminute % writeinterval == 0){ //print water depths every 1 min
+                //day, minute, .. then wd
+                FILE *f = fopen("waterdepths_prescribed_day.txt", "a");
+                //order: gridcell,gauge_ref,day,minute,waterdepth_mm
+                fprintf(f, "%d,%d,%d,%d,%f\n",bb,(int)gaugeREF->data[bb],trackday,dayminute, depths1E->data[bb]); //add k for correct minute 
+                fclose(f);
+              }
           }
       }//..end of ebb1
 
@@ -220,12 +246,17 @@ void iterateday(Config config){ //userinputs
 
           if(check_nodata(depthsX,PeriodFlood1,TRangeFlood1,HGT1st,bb,i,gaugenumber)==TRUE)continue;
 
+          trackday=i; 
+          dayminute = 0; //initialize
           for(k = 1; k < 700; k+=config.simtimestep) //flood1 tide simulation
           {
+              dayminute = config.simtimestep*(gauge1stLT[i][gaugenumber - 1]+k+1); //1440 min in day
+              if(dayminute < 0){trackday=i-1; dayminute+=1440;}
+
               if(depths1F->data[bb] < lowerbound || k > maxtideminutes) break;
               TFLrise = sun[i][0] - gauge1stLT[i][gaugenumber - 1];  //time from low, sunrise, NO buffer
-              TFLset  = sun[i][1] - gauge1stLT[i][gaugenumber - 1];  //time from low, sunset, NO buffer
-              
+              TFLset  = sun[i][1] - gauge1stLT[i][gaugenumber - 1];  //time from low, sunset, NO buffer              
+
               if(depths1F->data[bb] >= lowerbound && depths1F->data[bb] <= upperbound)
               {
                   //-----------------------------
@@ -251,9 +282,17 @@ void iterateday(Config config){ //userinputs
               }
               //update water levels
               tide_wdchange(depths1F,TRangeFlood1,bb,i,maxtideminutes,gaugenumber,k);
+              //save water depth??
+              if(config.save_waterdepth == TRUE && dayminute % writeinterval == 0){ //print water depths every 1 min
+                //day, minute, .. then wd
+                FILE *f = fopen("waterdepths_prescribed_day.txt", "a");
+                //order: gridcell,gauge_ref,day,minute,waterdepth_mm
+                fprintf(f, "%d,%d,%d,%d,%f\n",bb,(int)gaugeREF->data[bb],trackday,dayminute, depths1F->data[bb]); //add k for correct minute 
+                fclose(f);
+              }
           }
       }//..end of flood1
-      
+ 
       for(bb = 0; bb < depthsX->count; bb++)
       {
           if(depthsX->data[bb] == depthsX->nodata || gaugeREF->data[bb] == gaugeREF->nodata) continue;
@@ -263,8 +302,13 @@ void iterateday(Config config){ //userinputs
 
           if(check_nodata(depthsX,PeriodEbb2,TRangeEbb2,HGT2nd,bb,i,gaugenumber)==TRUE)continue;
 
+          trackday=i;
+          dayminute = 0; //initialize
           for(k = 1; k < 700; k+=config.simtimestep) //ebb2 tide simulation
           {
+              dayminute = config.simtimestep*(gauge2ndLT[i][gaugenumber - 1]-k+1); //1440 min in day
+              if(dayminute < 0){trackday=i-1; dayminute+=1440;}
+
               if (depths2E->data[bb] < lowerbound || k > maxtideminutes) continue;
               
               TFLrise = sun[i][0] - gauge2ndLT[i][gaugenumber - 1]; //time from low, sunrise, NO buffer
@@ -294,6 +338,14 @@ void iterateday(Config config){ //userinputs
               }
               //update water levels
               tide_wdchange(depths2E,TRangeEbb2,bb,i,maxtideminutes,gaugenumber,k);
+              //save water depth??
+              if(config.save_waterdepth == TRUE && dayminute % writeinterval == 0){ //print water depths every 1 min
+                //day, minute, .. then wd
+                FILE *f = fopen("waterdepths_prescribed_day.txt", "a");
+                //order: gridcell,gauge_ref,day,minute,waterdepth_mm
+                fprintf(f, "%d,%d,%d,%d,%f\n",bb,(int)gaugeREF->data[bb],trackday,dayminute, depths2E->data[bb]); //add k for correct minute 
+                fclose(f);
+              }
           }
       }//..end ebb2
 
@@ -305,9 +357,14 @@ void iterateday(Config config){ //userinputs
           maxtideminutes = PeriodFlood2[i][gaugenumber - 1];
          
           if(check_nodata(depthsX,PeriodFlood2,TRangeFlood2,HGT2nd,bb,i,gaugenumber)==TRUE)continue;
- 
+
+          trackday=i; 
+          dayminute = 0; //initialize
           for (k = 1; k < 700; k+=config.simtimestep) //flood2 tide simulation
           {
+              dayminute = config.simtimestep*(gauge2ndLT[i][gaugenumber - 1]+k+1); //1440 min in day
+              if(dayminute < 0){trackday=i-1; dayminute+=1440;}
+
               if(depths2F->data[bb] < lowerbound || k > maxtideminutes) break;
               TFLrise = sun[i][0] - gauge2ndLT[i][gaugenumber - 1]; //time from low, sunrise, NO buffer
               TFLset  = sun[i][1] - gauge2ndLT[i][gaugenumber - 1]; //time from low, sunset, NO buffer
@@ -337,35 +394,44 @@ void iterateday(Config config){ //userinputs
               }
               //update water levels
               tide_wdchange(depths2F,TRangeFlood2,bb,i,maxtideminutes,gaugenumber,k);
+              //save water depth??
+              if(config.save_waterdepth == TRUE && dayminute % writeinterval == 0){ //print water depths every 1 min
+                //day, minute, .. then wd
+                FILE *f = fopen("waterdepths_prescribed_day.txt", "a");
+                //order: gridcell,gauge_ref,day,minute,waterdepth_mm
+                fprintf(f, "%d,%d,%d,%d,%f\n",bb,(int)gaugeREF->data[bb],trackday,dayminute, depths2F->data[bb]); //add k for correct minute 
+                fclose(f);
+              }
           }
       }//..end flood2
-               
+              
       //.............//
       //  save maps  //
       //.............//
-      if(config.constrain_daylight == TRUE){
-        sprintf(outname, "%s/day_%03d_daylightonly_swa.asc",config.shallowwateravail_outdir,i);
-      }else{
-        sprintf(outname, "%s/day_%03d_daynight_swa.asc",config.shallowwateravail_outdir,i);
-      }
-      rasterwrite(dayFHA,outname);
+      if(config.save_waterdepth == FALSE){
+        if(config.constrain_daylight == TRUE){
+          sprintf(outname, "%s/day_%03d_daylightonly_swa.asc",config.shallowwateravail_outdir,i);
+        }else{
+          sprintf(outname, "%s/day_%03d_daynight_swa.asc",config.shallowwateravail_outdir,i);
+        }
+        rasterwrite(dayFHA,outname);
 
-      //.................//
-      // field summaries //
-      //.................//
-      if(i==0){
-        writeindices(&config, dayFHA, mask, i, config.usemask, FALSE);
-      }else{
-        writeindices(&config, dayFHA, mask, i, config.usemask, TRUE);
+        //.................//
+        // field summaries //
+        //.................//
+        if(i==0){
+          writeindices(&config, dayFHA, mask, i, config.usemask, FALSE);
+        }else{
+          writeindices(&config, dayFHA, mask, i, config.usemask, TRUE);
+        }
       }
-
   }//..end of day loop
 
   //----------------------------------
   // write day average summary raster
   //----------------------------------
-  writesumy(config);
-
+  if(config.save_waterdepth == FALSE){writesumy(config);}
+ 
   //----------------
   //free memory
   //----------------

@@ -50,12 +50,14 @@ int main(int argc,char **argv)
     *simtype="survey";
     iteratesurvey(config);
   }else if(config.simtype==2){
-    *simtype="tide";
-  }else if(config.simtype==3){
     *simtype="days";
     iterateday(config);
+  }else if(config.simtype==3){
+    *simtype="days wd prescribe...";
+    iterateday_prescribewd(config);
   }else if(config.simtype==4){
-    *simtype="fullyear";
+    *simtype="days wd prescribe using NADV88 inputs...";
+    iterateday_prescribewd_NADV88(config);
   }else{
     fail("Error in simulation type, must specify in config file 1=survey,2=tide,3=days,4=full year.\n");
   }
