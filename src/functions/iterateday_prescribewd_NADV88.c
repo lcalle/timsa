@@ -48,13 +48,12 @@ void iterateday_prescribewd_NADV88(Config config){ //userinputs
   lowerbound=config.lowerbound_waterwindow;
   upperbound=config.upperbound_waterwindow;  
 
-  printf("loading raster data...\n");
   //get raster data
   gaugeREF      = rasterget(config.gauge_filename);
   dem           = rasterget(config.water_filename);
   depthsX       = rasterget(config.water_filename);
   defaultRaster = rastercopy(dem);     
- 
+
   for(i = 0; i < defaultRaster->count; i++)
   {
       if(defaultRaster->data[i] != defaultRaster->nodata){ defaultRaster->data[i] = 0;}
@@ -145,7 +144,7 @@ void iterateday_prescribewd_NADV88(Config config){ //userinputs
       TFLrise   = sun[trackday][0] - dayminute; //time from sunrise, NO buffer
       TFLset    = sun[trackday][1] - dayminute; //time from sunset, NO buffer
 
-      printf("\t tidal simulation..day %d..dayminute %d..\n",trackday,dayminute);
+      //printf("\t tidal simulation..day %d..dayminute %d..\n",trackday,dayminute);
       for(bb = 0; bb < depthsX->count; bb++)
       {
           //save water depth??
@@ -186,7 +185,14 @@ void iterateday_prescribewd_NADV88(Config config){ //userinputs
           //..gauge provides the rate of change
           //..negative values reduce water levels (makes shallower)
           //..positive values add water
-          if(i < nrows) depths_sim->data[bb] += gaugewdepths[i+1][gaugenumber - 1] - gaugewdepths[i][gaugenumber - 1]; 
+          if(i < nrows){
+            if(gaugewdepths[i+1][gaugenumber - 1] == depths_sim->nodata || gaugewdepths[i][gaugenumber - 1] == depths_sim->nodata){
+              //no change in water depth if there is nodata
+              depths_sim->data[bb] += 0;
+            }else{
+              depths_sim->data[bb] += gaugewdepths[i+1][gaugenumber - 1] - gaugewdepths[i][gaugenumber - 1];
+            }
+          } 
       }//end grid loop
               
       //.............//
@@ -216,6 +222,7 @@ void iterateday_prescribewd_NADV88(Config config){ //userinputs
       //....................
       if(dayminute == 1440){
         trackday += 1;
+		free(dayFHA); //try for safety, freeing memory
         dayFHA   = rastercopy(defaultRaster);  //sums FHA for day
         printf("\t%d nrows %.0f%% of nrows completed\n",nrows,round((double)i / (double)nrows*100.0));
       }
