@@ -19,27 +19,36 @@
 void writesumy(Config config){ //userinputs
   Raster *rget,*ravg,*rcnt;
   char fname[120];
-  int i,j;
+  char *isprescribed;
+  int i,j,n_dat;
 
+  //get number of days
+  n_dat = (config.n * config.simtimestep)/1440; //1440 min/day
+
+  if(config.simtype==3 || config.simtype==4){
+    isprescribed="prescribewdepth_";
+  }else{
+    isprescribed="";
+  }
   //make an empty matrix to keep count of days with data
   //get data for single day to create the empty raster
   if(config.constrain_daylight == TRUE){
-    sprintf(fname, "%s/day_%03d_daylightonly_swa.asc",config.shallowwateravail_outdir,2);
+    sprintf(fname, "%s/day_%03d_daylightonly_%sswa.asc",config.shallowwateravail_outdir,0,isprescribed);
   }else{
-    sprintf(fname, "%s/day_%03d_daynight_swa.asc",config.shallowwateravail_outdir,2);
+    sprintf(fname, "%s/day_%03d_daynight_%sswa.asc",config.shallowwateravail_outdir,0,isprescribed);
   }
   rcnt = rasterget(fname);
   for(j = 0; j < rcnt->count; j++){
     if(rcnt->data[j] != rcnt->nodata){ rcnt->data[j] = 0.0;}
   }
 
-  //loop over all days to sum data and determien N
-  for( i=0; i < config.n; i++){
+  //loop over all days to sum data and determine N
+  for( i=0; i < n_dat; i++){
     //get data for day
     if(config.constrain_daylight == TRUE){
-      sprintf(fname, "%s/day_%03d_daylightonly_swa.asc",config.shallowwateravail_outdir,i);
+      sprintf(fname, "%s/day_%03d_daylightonly_%sswa.asc",config.shallowwateravail_outdir,i,isprescribed);
     }else{
-      sprintf(fname, "%s/day_%03d_daynight_swa.asc",config.shallowwateravail_outdir,i);
+      sprintf(fname, "%s/day_%03d_daynight_%sswa.asc",config.shallowwateravail_outdir,i,isprescribed);
     }
     rget = rasterget(fname);    
 
@@ -62,9 +71,9 @@ void writesumy(Config config){ //userinputs
 
   //save raster to file
   if(config.constrain_daylight == TRUE){
-    sprintf(fname, "%s/dayavg_daylightonly_swa.asc",config.shallowwateravail_outdir);
+    sprintf(fname, "%s/dayavg_daylightonly_%sswa.asc",config.shallowwateravail_outdir,isprescribed);
   }else{
-    sprintf(fname, "%s/dayavg_daynight_swa.asc",config.shallowwateravail_outdir);
+    sprintf(fname, "%s/dayavg_daynight_%sswa.asc",config.shallowwateravail_outdir,isprescribed);
   }
   rasterwrite(ravg,fname);
   
