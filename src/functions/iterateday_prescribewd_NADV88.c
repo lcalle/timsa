@@ -71,10 +71,12 @@ void iterateday_prescribewd_NADV88(Config config){ //userinputs
 
   printf("loading csv data...\n");
   //memory allocated for number of rows
-  int    *sun[365]; //365 days
+  int    ndays=nrows/1440;
+  int    *sun[ndays]; //365 days
   double *gaugewdepths[nrows];  
 
-  for(i=0; i < 365; i++){
+  printf(" sun days ndays %d\n",ndays);
+  for(i=0; i < ndays; i++){
     sun[i] = malloc(sizeof(int)*2);
   }
   for(i=0; i < nrows; i++){
@@ -85,7 +87,7 @@ void iterateday_prescribewd_NADV88(Config config){ //userinputs
   //        get data           //
   //---------------------------//
   //2 columns sunrise, sunset for 365 days
-  CSV2array2d_int(config.sun_filename, sun, 365,2);
+  CSV2array2d_int(config.sun_filename, sun, ndays,2);
   //for the prescribed_waterdepths, surveytimes_filename is dummy name in config
   CSV2array2d_double(config.surveytimes_filename, gaugewdepths,nrows,tidegauges);
 
@@ -95,7 +97,7 @@ void iterateday_prescribewd_NADV88(Config config){ //userinputs
   if(config.save_waterdepth == TRUE){
     FILE *f = fopen("waterdepths_negvalues_iswater_posvalues_isdry_prescribed_day.txt", "w");
     //write the header, then write the data
-    fprintf(f, "gridcell,gauge_ref,day,minute,waterdepth_mm\n");
+    fprintf(f, "gridcell,gauge_ref,day,minute,waterdepth_m\n");
     fclose(f);
   }
 
@@ -243,7 +245,7 @@ void iterateday_prescribewd_NADV88(Config config){ //userinputs
   free(dayFHA);
   free(depths_sim);
 
-  for(i=0; i < 365; i++){
+  for(i=0; i < ndays; i++){
     free(sun[i]);
   }
   for(i=0; i < nrows; i++){
