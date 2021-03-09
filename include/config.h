@@ -18,6 +18,7 @@ typedef struct
   int simtimestep;               //timestep_interval    (in minutes)
   int constrain_daylight;        //constrain_daylight   (Bool is int; TRUE 1=yes, FALSE 0=no)
   int save_waterdepth;           //save water depths? (Bool is int; TRUE 1=yes, FALSE 0=no)
+  int save_swa_perpixel;         //save shallow water availability per pixel (Bool is int; TRUE 1=yes, FALSE 0=no)
   double lowerbound_waterwindow; //lower bound in water window to estimate availability (negative is water)
   double upperbound_waterwindow; //upper bound in water window to estimate availability (positive is dry)
   int usemask;                   //use ascii mask for field summaries (Bool is int; TRUE 1=yes, FALSE 0=no)

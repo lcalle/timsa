@@ -103,6 +103,16 @@ void iterateday_prescribewd_NADV88(Config config){ //userinputs
     fclose(f);
   }
 
+  //........................
+  // make csv for SWA
+  //........................
+  if(config.save_swa_perpixel == TRUE){
+    FILE *f2 = fopen("swa_perpixel_prescribedwdNADV88_day.txt", "w");
+    //write the header, then write the data
+    fprintf(f2, "gridcell,gauge_ref,day,minute,swa_min\n");
+    fclose(f2);
+  }
+
   //---------------------------//
   //     main tidal loop       //
   // ..adjust water maps       //
@@ -152,7 +162,6 @@ void iterateday_prescribewd_NADV88(Config config){ //userinputs
       {
           //save water depth??
           if(config.save_waterdepth == TRUE && dayminute % dayminute == 0){ //print water depths every 1 min
-            //day, minute, .. then wd, where wdepths are relative to water surface, negative values is wet, positive values dry
             FILE *f = fopen("waterdepths_negvalues_iswater_posvalues_isdry_prescribed_day.txt", "a");
             fprintf(f, "%d,%d,%d,%d,%f\n",bb,(int)gaugeREF->data[bb],trackday,dayminute, dem->data[bb] - depths_sim->data[bb]); //add k for correct minute 
             fclose(f);
@@ -197,7 +206,7 @@ void iterateday_prescribewd_NADV88(Config config){ //userinputs
             }
           } 
       }//end grid loop
-              
+             
       //.............//
       //  save maps  //
       //.............//
@@ -218,6 +227,17 @@ void iterateday_prescribewd_NADV88(Config config){ //userinputs
           writeindices(&config, dayFHA, mask, trackday, config.usemask, TRUE);
         }
       }//..save maps if not printing to csv
+
+      //....................
+      // save swa perpixel
+      //....................
+      if(config.save_swa_perpixel == TRUE && dayminute == 1440){//1440 in day
+        FILE *f2 = fopen("swa_perpixel_prescribedwdNADV88_day.txt", "a");
+        for(bb = 0; bb < depthsX->count; bb++){
+           fprintf(f2, "%d,%d,%d,%d,%f\n",bb,(int)gaugeREF->data[bb],trackday,dayminute, dayFHA->data[bb]);
+        }
+        fclose(f2);
+      }
 
       //....................
       // get new FHA map
