@@ -64,6 +64,8 @@ void iterateday_prescribewd_NADV88(Config config){ //userinputs
   {
     tidegauges = max(tidegauges,gaugeREF->data[i]);
   }
+  //hard code
+  tidegauges = 13;
   ///////////////
   
   //use mask for indices  
@@ -71,7 +73,7 @@ void iterateday_prescribewd_NADV88(Config config){ //userinputs
 
   printf("loading csv data...\n");
   //memory allocated for number of rows
-  int    ndays=nrows/1440;
+  int    ndays=(nrows*config.simtimestep)/1440;
   int    *sun[ndays]; //365 days
   double *gaugewdepths[nrows];  
 
@@ -115,7 +117,6 @@ void iterateday_prescribewd_NADV88(Config config){ //userinputs
   for(i = 0; i < nrows; i++)  //for each day; ebb or flood rasters = 0.5 of tide [e.g. Total time available (TTA) = ebb + flood]
   {
       dayminute = config.simtimestep*(i+1)-(1440*trackday); //1440 min in day
-
       //......................................................//
       //    height adjustments for first day only             //
       //......................................................//
@@ -228,6 +229,7 @@ void iterateday_prescribewd_NADV88(Config config){ //userinputs
         dayFHA   = rastercopy(defaultRaster);  //sums FHA for day
         printf("\t%d nrows %.0f%% of nrows completed\n",nrows,round((double)i / (double)nrows*100.0));
       }
+
   }//..end of loop
 
   //----------------------------------
