@@ -64,6 +64,8 @@ void iterateday_prescribewd(Config config){ //userinputs
   {
     tidegauges = max(tidegauges,gaugeREF->data[i]);
   }
+  //hard code tide gauges
+  tidegauges = 7;
   ///////////////
   
   //use mask for indices  
@@ -71,10 +73,12 @@ void iterateday_prescribewd(Config config){ //userinputs
 
   printf("loading csv data...\n");
   //memory allocated for number of rows
-  int    *sun[365]; //365 days
+  int    ndays=(nrows*config.simtimestep)/1440;
+  int    *sun[ndays]; //flexible days
   double *gaugewdepths[nrows];  
 
-  for(i=0; i < 365; i++){
+  printf(" sun days ndays %d\n",ndays);
+  for(i=0; i < ndays; i++){
     sun[i] = malloc(sizeof(int)*2);
   }
   for(i=0; i < nrows; i++){
@@ -84,8 +88,8 @@ void iterateday_prescribewd(Config config){ //userinputs
   //---------------------------//
   //        get data           //
   //---------------------------//
-  //2 columns sunrise, sunset for 365 days
-  CSV2array2d_int(config.sun_filename, sun, 365,2);
+  //2 columns sunrise, sunset for ndays
+  CSV2array2d_int(config.sun_filename, sun, ndays,2);
   //for the prescribed_waterdepths, surveytimes_filename is dummy name in config
   CSV2array2d_double(config.surveytimes_filename, gaugewdepths,nrows,tidegauges);
 
@@ -93,10 +97,20 @@ void iterateday_prescribewd(Config config){ //userinputs
   // make csv for wdoutputs
   //........................
   if(config.save_waterdepth == TRUE){
-    FILE *f = fopen("waterdepths_prescribed_day.txt", "w");
+    FILE *f = fopen("waterdepths_prescribedwd.txt", "w");
     //write the header, then write the data
-    fprintf(f, "gridcell,gauge_ref,day,minute,waterdepth_mm\n");
+    fprintf(f, "gridcell,gauge_ref,day,minute,waterdepth_m\n");
     fclose(f);
+  }
+
+  //........................
+  // make csv for SWA
+  //........................
+  if(config.save_swa_perpixel == TRUE){
+    FILE *f2 = fopen("swa_prescribedwd.txt", "w");
+    //write the header, then write the data
+    fprintf(f2, "gridcell,gauge_ref,day,minute,swa_min\n");
+    fclose(f2);
   }
 
   //---------------------------//
@@ -145,7 +159,7 @@ void iterateday_prescribewd(Config config){ //userinputs
           //save water depth??
           if(config.save_waterdepth == TRUE && dayminute % dayminute == 0){ //print water depths every 1 min
             //day, minute, .. then wd
-            FILE *f = fopen("waterdepths_prescribed_day.txt", "a");
+            FILE *f = fopen("waterdepths_prescribedwd.txt", "a");
             fprintf(f, "%d,%d,%d,%d,%f\n",bb,(int)gaugeREF->data[bb],trackday,dayminute, depths_sim->data[bb]); //add k for correct minute 
             fclose(f);
           }
@@ -177,7 +191,14 @@ void iterateday_prescribewd(Config config){ //userinputs
           }
 
           //update water levels
-          if(i < nrows) depths_sim->data[bb] -= gaugewdepths[i+1][gaugenumber - 1] - gaugewdepths[i][gaugenumber - 1]; 
+          if(i < nrows){
+            if(gaugewdepths[i+1][gaugenumber - 1] == depths_sim->nodata || gaugewdepths[i][gaugenumber - 1] == depths_sim->nodata){
+              //no change in water depth if there is nodata
+              depths_sim->data[bb] += 0;
+            }else{
+              depths_sim->data[bb] += gaugewdepths[i+1][gaugenumber - 1] - gaugewdepths[i][gaugenumber - 1];
+            }
+          } 
       }//end grid loop
               
       //.............//
@@ -200,6 +221,17 @@ void iterateday_prescribewd(Config config){ //userinputs
           writeindices(&config, dayFHA, mask, trackday, config.usemask, TRUE);
         }
       }//..save maps if not printing to csv
+
+      //....................
+      // save swa perpixel
+      //....................
+      if(config.save_swa_perpixel == TRUE && dayminute == 1440){//1440 in day
+        FILE *f2 = fopen("swa_prescribedwd.txt", "a");
+        for(bb = 0; bb < depthsX->count; bb++){
+           fprintf(f2, "%d,%d,%d,%d,%f\n",bb,(int)gaugeREF->data[bb],trackday,dayminute, dayFHA->data[bb]);
+        }
+        fclose(f2);
+      }
 
       //....................
       // get new FHA map
@@ -227,7 +259,7 @@ void iterateday_prescribewd(Config config){ //userinputs
   free(dayFHA);
   free(depths_sim);
 
-  for(i=0; i < 365; i++){
+  for(i=0; i < ndays; i++){
     free(sun[i]);
   }
   for(i=0; i < nrows; i++){
