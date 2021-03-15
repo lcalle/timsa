@@ -135,8 +135,18 @@ void iterateday(Config config){ //userinputs
   if(config.save_waterdepth == TRUE){
     FILE *f = fopen("waterdepths_prescribed_day.txt", "w");
     //write the header, then write the data
-    fprintf(f, "gridcell,gauge_ref,day,minute,waterdepth_mm\n");
+    fprintf(f, "gridcell,gauge_ref,day,minute,waterdepth_m\n");
     fclose(f);
+  }
+
+  //........................
+  // make csv for SWA
+  //........................
+  if(config.save_swa_perpixel == TRUE){
+    FILE *f2 = fopen("swa_prescribedwd.txt", "w");
+    //write the header, then write the data
+    fprintf(f2, "gridcell,gauge_ref,day,minute,swa_min\n");
+    fclose(f2);
   }
 
   //---------------------------//
@@ -424,6 +434,17 @@ void iterateday(Config config){ //userinputs
         }else{
           writeindices(&config, dayFHA, mask, i, config.usemask, TRUE);
         }
+      }
+
+      //....................
+      // save swa perpixel
+      //....................
+      if(config.save_swa_perpixel == TRUE){
+        FILE *f2 = fopen("swa_prescribedwd.txt", "a");
+        for(bb = 0; bb < depthsX->count; bb++){
+           fprintf(f2, "%d,%d,%d,%d,%f\n",bb,(int)gaugeREF->data[bb],trackday,dayminute, dayFHA->data[bb]);
+        }
+        fclose(f2);
       }
   }//..end of day loop
 
