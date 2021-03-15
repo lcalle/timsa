@@ -145,7 +145,7 @@ void iterateday(Config config){ //userinputs
   if(config.save_swa_perpixel == TRUE){
     FILE *f2 = fopen("swa_prescribedwd.txt", "w");
     //write the header, then write the data
-    fprintf(f2, "gridcell,gauge_ref,day,minute,swa_min\n");
+    fprintf(f2, "gridcell,gauge_ref,day,swa_min\n");
     fclose(f2);
   }
 
@@ -442,7 +442,7 @@ void iterateday(Config config){ //userinputs
       if(config.save_swa_perpixel == TRUE){
         FILE *f2 = fopen("swa_prescribedwd.txt", "a");
         for(bb = 0; bb < depthsX->count; bb++){
-           fprintf(f2, "%d,%d,%d,%d,%f\n",bb,(int)gaugeREF->data[bb],trackday,dayminute, dayFHA->data[bb]);
+           fprintf(f2, "%d,%d,%d,%f\n",bb,(int)gaugeREF->data[bb],trackday,dayFHA->data[bb]);
         }
         fclose(f2);
       }
